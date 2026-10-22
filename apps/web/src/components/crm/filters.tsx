@@ -12,14 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
-import { CalendarIcon, X, Filter } from "lucide-react";
-import { format } from "date-fns";
+import { X, Filter } from "lucide-react";
 
 interface FilterOption {
   label: string;
@@ -43,10 +36,6 @@ export function FilterField({
   options,
   placeholder,
 }: FilterFieldProps) {
-  const [date, setDate] = React.useState<Date | undefined>(
-    value instanceof Date ? value : undefined
-  );
-
   if (type === "text") {
     return (
       <div className="space-y-2">
@@ -82,33 +71,22 @@ export function FilterField({
   }
 
   if (type === "date") {
+    const dateValue =
+      value instanceof Date && !Number.isNaN(value.getTime())
+        ? `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, "0")}-${String(value.getDate()).padStart(2, "0")}`
+        : typeof value === "string"
+          ? value.slice(0, 10)
+          : "";
+
     return (
       <div className="space-y-2">
         <Label className="text-sm font-medium">{label}</Label>
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button
-              variant="outline"
-              className={cn(
-                "h-9 w-full justify-start text-left font-normal",
-                !date && "text-muted-foreground"
-              )}
-            >
-              <CalendarIcon className="mr-2 h-4 w-4" />
-              {date ? format(date, "PPP") : placeholder || `Select ${label.toLowerCase()}`}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" align="start">
-            <Calendar
-              mode="single"
-              selected={date}
-              onSelect={(selectedDate) => {
-                setDate(selectedDate);
-                onChange?.(selectedDate);
-              }}
-            />
-          </PopoverContent>
-        </Popover>
+        <Input
+          type="date"
+          value={dateValue}
+          onChange={(e) => onChange?.(e.target.value || undefined)}
+          className="h-9"
+        />
       </div>
     );
   }
