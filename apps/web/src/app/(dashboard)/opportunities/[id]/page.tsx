@@ -32,6 +32,7 @@ import { subscribeToUnitInventoryUpdates } from "@/lib/unit-inventory-events";
 import { useAuth } from "@/contexts/auth-context";
 import StickyNotesCard from "@/components/crm/sticky-notes-card";
 import OpportunityFinancialWorkspace from "@/components/crm/opportunity-financial-workspace";
+import { UnitLayoutPicker } from "@/components/projects/unit-layout-picker";
 
 import {
   ArrowLeft,
@@ -1008,59 +1009,19 @@ export default function OpportunityDetailPage() {
             </div>
 
             {quoteProjectId && (
-              <div className="space-y-3">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <Label>Select Available Unit *</Label>
-                  <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
-                    <span><i className="mr-1 inline-block h-2.5 w-2.5 rounded-sm bg-green-100" />Available</span>
-                    <span><i className="mr-1 inline-block h-2.5 w-2.5 rounded-sm bg-red-100" />Registered</span>
-                    <span><i className="mr-1 inline-block h-2.5 w-2.5 rounded-sm bg-amber-100" />Booked / Reserved</span>
-                    <span><i className="mr-1 inline-block h-2.5 w-2.5 rounded-sm bg-gray-200" />Blocked</span>
-                  </div>
-                </div>
-                {quoteUnitsLoading ? (
-                  <p className="text-sm text-muted-foreground">Loading units...</p>
-                ) : quoteUnits.length ? (
-                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-6">
-                    {quoteUnits.map((unit) => {
-                      const unitStatus = String(unit.status || "AVAILABLE").toUpperCase();
-                      const isAvailable = unitStatus === "AVAILABLE";
-                      const statusClass = unitStatus === "AVAILABLE"
-                        ? "border-green-200 bg-green-50 text-green-800"
-                        : unitStatus === "BOOKED" || unitStatus === "RESERVED"
-                          ? "border-amber-200 bg-amber-50 text-amber-800"
-                          : ["SOLD", "REGISTERED"].includes(unitStatus)
-                            ? "border-red-200 bg-red-50 text-red-700"
-                          : unitStatus === "HOLD"
-                            ? "border-gray-300 bg-gray-100 text-gray-600"
-                            : "border-gray-400 bg-gray-200 text-gray-600";
-                      return (
-                        <button
-                          key={unit.id}
-                          type="button"
-                          disabled={!isAvailable}
-                          aria-pressed={unit.id === quoteUnitId}
-                          onClick={() => {
-                            setQuoteUnitId(unit.id);
-                            setQuoteDescription(`${quoteProjects.find((project) => project.id === quoteProjectId)?.name || "Property"} - Unit ${unit.number}`);
-                          }}
-                          className={`min-h-[76px] rounded-md border p-2 text-center text-xs transition-colors disabled:cursor-not-allowed disabled:opacity-80 ${statusClass} ${unit.id === quoteUnitId ? "ring-2 ring-primary ring-offset-1" : "hover:border-primary"}`}
-                        >
-                          <span className="block font-semibold">{unit.number}</span>
-                          <span className="block">{unit.type || "Unit"}</span>
-                          {unit.area ? <span className="block">{unit.area} sq.ft</span> : null}
-                        </button>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <p className="text-sm text-muted-foreground">No units found for this project.</p>
-                )}
-              </div>
+              <UnitLayoutPicker
+                units={quoteUnits}
+                selectedId={quoteUnitId}
+                loading={quoteUnitsLoading}
+                onSelect={(unit) => {
+                  setQuoteUnitId(unit.id);
+                  setQuoteDescription(`${quoteProjects.find((project) => project.id === quoteProjectId)?.name || "Property"} - Unit ${unit.number}`);
+                }}
+              />
             )}
 
             {selectedQuoteUnit && (
-              <div className="grid gap-3 rounded-md border border-blue-200 bg-blue-50/70 p-3 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="grid gap-3 rounded-md border border-slate-200 bg-white p-3 sm:grid-cols-2 lg:grid-cols-3">
                 <div className="space-y-1"><Label>Unit Number</Label><p className="text-sm font-medium">{selectedQuoteUnit.number}</p></div>
                 <div className="space-y-1"><Label>Unit Type</Label><p className="text-sm font-medium">{selectedQuoteUnit.type || "—"}</p></div>
                 <div className="space-y-1"><Label>Saleable Area (sq.ft)</Label><p className="text-sm font-medium">{selectedQuoteUnit.area || "—"}</p></div>

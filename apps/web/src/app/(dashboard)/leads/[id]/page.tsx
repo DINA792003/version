@@ -35,6 +35,7 @@ import { getCurrentCoordinates, getGeolocationPermission, getLocationSettingsIns
 import LayoutDrivenForm from "@/components/admin/layout-driven-form";
 import LeadActivityHistoryCard from "@/components/crm/lead-activity-history-card";
 import StickyNotesCard from "@/components/crm/sticky-notes-card";
+import { UnitLayoutPicker } from "@/components/projects/unit-layout-picker";
 
 import { useToast } from "@/hooks/use-toast";
 
@@ -434,6 +435,9 @@ export default function LeadDetailPage() {
   const [quoteConfirmationOpen, setQuoteConfirmationOpen] = React.useState(false);
   const [quoteDescription, setQuoteDescription] = React.useState("");
   const [quoteUnitPrice, setQuoteUnitPrice] = React.useState("");
+  const [quoteUnitId, setQuoteUnitId] = React.useState("");
+  const [quoteLayoutUnits, setQuoteLayoutUnits] = React.useState<any[]>([]);
+  const [quoteLayoutLoading, setQuoteLayoutLoading] = React.useState(false);
 
   const [createBookingDialogOpen, setCreateBookingDialogOpen] = React.useState(false);
   const [bookingProjectId, setBookingProjectId] = React.useState("");
@@ -839,6 +843,40 @@ export default function LeadDetailPage() {
       cancelled = true;
     };
   }, [createOppDialogOpen, oppProjectId, toast]);
+
+  const quoteProjectId =
+    lead?.opportunities?.[0]?.projectId ||
+    lead?.siteVisits?.find((visit: any) => visit.status === "COMPLETED")?.projectId ||
+    lead?.projectId ||
+    lead?.project?.id ||
+    "";
+
+  React.useEffect(() => {
+    if (!createQuoteDialogOpen || !quoteProjectId) {
+      setQuoteLayoutUnits([]);
+      if (!createQuoteDialogOpen) setQuoteUnitId("");
+      return;
+    }
+    let cancelled = false;
+    setQuoteLayoutLoading(true);
+    unitApi.list({ projectId: quoteProjectId, limit: 200 }).then((res) => {
+      if (!cancelled) setQuoteLayoutUnits(res.data?.data || []);
+    }).catch((err) => {
+      if (!cancelled) {
+        setQuoteLayoutUnits([]);
+        toast({
+          title: "Error",
+          description: err?.response?.data?.error || "Failed to load project units",
+          variant: "destructive" as any,
+        });
+      }
+    }).finally(() => {
+      if (!cancelled) setQuoteLayoutLoading(false);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [createQuoteDialogOpen, quoteProjectId, toast]);
 
   React.useEffect(() => {
     if (!createBookingDialogOpen || !bookingProjectId) {
@@ -1535,7 +1573,7 @@ export default function LeadDetailPage() {
         projectId: opportunity?.projectId || lead?.siteVisits?.find((visit: any) => visit.status === "COMPLETED")?.projectId || lead?.project?.id,
         items: [
           {
-            ...(opportunity?.unitId ? { unitId: opportunity.unitId } : {}),
+            ...((quoteUnitId || opportunity?.unitId) ? { unitId: quoteUnitId || opportunity.unitId } : {}),
             description: quoteDescription.trim(),
             quantity: 1,
             unitPrice: Number(quoteUnitPrice),
@@ -1547,6 +1585,7 @@ export default function LeadDetailPage() {
       setQuoteConfirmationOpen(false);
       setQuoteDescription("");
       setQuoteUnitPrice("");
+      setQuoteUnitId("");
       try {
         const pdfResponse = await quotationApi.downloadPdf(quotation.id);
         const url = URL.createObjectURL(new Blob([pdfResponse.data], { type: "application/pdf" }));
@@ -3863,12 +3902,24 @@ export default function LeadDetailPage() {
 
       {/* Create Quotation Dialog */}
       <Dialog open={createQuoteDialogOpen} onOpenChange={setCreateQuoteDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-3xl">
           <DialogHeader>
             <DialogTitle>Create Quotation</DialogTitle>
             <DialogDescription>Description and unit price are required.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
+            {quoteProjectId ? (
+              <UnitLayoutPicker
+                units={quoteLayoutUnits}
+                selectedId={quoteUnitId}
+                loading={quoteLayoutLoading}
+                onSelect={(unit) => {
+                  setQuoteUnitId(unit.id);
+                  setQuoteDescription((current) => current.trim() ? current : `${unit.number}${unit.type ? ` - ${unit.type}` : ""}`);
+                  if (unit.price && !quoteUnitPrice) setQuoteUnitPrice(String(unit.price));
+                }}
+              />
+            ) : null}
             <div className="space-y-2">
               <Label htmlFor="quote-description">Description *</Label>
               <Input
