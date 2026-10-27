@@ -17,6 +17,7 @@ import {
   quotationApi,
   unitApi,
 } from "@/lib/api";
+import { UnitLayoutPicker } from "@/components/projects/unit-layout-picker";
 type Project = { id: string; name: string };
 type Unit = {
   id: string;
@@ -464,15 +465,15 @@ export function OpportunityCommercialWorkflows({
               </select>
               {opportunity.project?.id && <p className="text-xs text-muted-foreground">This opportunity is already associated with {opportunity.project.name}.</p>}
             </div>
-            {quoteProjectId && <div className="space-y-2">
-              <Label htmlFor="quote-unit">Unit *</Label>
-              <select id="quote-unit" className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm" value={quoteUnitId} disabled={isLoadingUnits} onChange={(event) => setQuoteUnitId(event.target.value)}>
-                <option value="">{isLoadingUnits ? "Loading units..." : "Select a unit"}</option>
-                {units.map((unit) => <option key={unit.id} value={unit.id} disabled={unit.status !== "AVAILABLE" && unit.id !== opportunity.unit?.id}>
-                  {unit.number}{unit.type ? ` · ${unit.type}` : ""}{unit.area ? ` · ${unit.area} sq.ft` : ""}{unit.status && unit.status !== "AVAILABLE" ? ` · ${unit.status}` : ""}
-                </option>)}
-              </select>
-            </div>}
+            {quoteProjectId && (
+              <UnitLayoutPicker
+                units={units}
+                selectedId={quoteUnitId}
+                loading={isLoadingUnits}
+                canSelect={(unit) => unit.status === "AVAILABLE" || unit.id === opportunity.unit?.id}
+                onSelect={(unit) => setQuoteUnitId(unit.id)}
+              />
+            )}
             {selectedUnit && <div className="grid gap-4 rounded-md border bg-muted/20 p-4 sm:grid-cols-2 lg:grid-cols-3">
               <div><p className="text-xs text-muted-foreground">Unit</p><p className="text-sm font-medium">{selectedUnit.number} · {selectedUnit.type || "Unit"}</p></div>
               <div><p className="text-xs text-muted-foreground">Saleable Area</p><p className="text-sm font-medium">{selectedUnit.area || "—"} sq.ft</p></div>
